@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-VERSION="5.0.4"
+
 
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/EvilGenius-dot/shortcut/raw/main/Readme/92/linux"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/linux"
 
 SERVICE_NAME="tominersystem"
 
