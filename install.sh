@@ -6,7 +6,7 @@ VERSION="1.0.0"
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/1.0.0/linux"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/linux"
 
 SERVICE_NAME="tominersystem"
 
