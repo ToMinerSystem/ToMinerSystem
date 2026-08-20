@@ -4,7 +4,7 @@ set -Eeuo pipefail
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem TMS"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/1.0.0/TMS"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/linux"
 SERVICE_NAME="ToMinerSystem-TMS"
 
 # ToMinerSystem TMS Ubuntu/Debian/CentOS x86_64 二进制安装器。
