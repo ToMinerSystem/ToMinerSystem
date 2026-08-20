@@ -4,11 +4,6 @@
 
 **面向 Windows 与 Ubuntu 的多币种矿池中转、端口管理和 TMS 加密传输系统**
 
-[![Version](https://img.shields.io/badge/version-5.0.4-5865f2?style=flat-square)](#)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Ubuntu-2563eb?style=flat-square)](#)
-[![Runtime](https://img.shields.io/badge/runtime-Rust%20%2B%20Tokio-f97316?style=flat-square)](#)
-[![Default Fee](https://img.shields.io/badge/default%20fee-0%25-16a34a?style=flat-square)](#服务费说明)
-
 通过统一 Web 管理端配置中转端口、查看矿机状态和 Share 统计，并可使用 TMS 客户端在本地矿机与远程服务器之间建立加密链路。
 
 </div>
