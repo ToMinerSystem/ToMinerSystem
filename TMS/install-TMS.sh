@@ -1,47 +1,58 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+VERSION="1.0.0"
+
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem TMS"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/linux"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS"
 SERVICE_NAME="ToMinerSystem-TMS"
 
-# ToMinerSystem TMS Ubuntu/Debian/CentOS x86_64 二进制安装器。
-# 默认从 DOWNLOAD_HOST 下的 linux 目录读取 linux-TMS。
-# TMS_DOWNLOAD_BASE_URL 可在单次安装时覆盖上方下载地址。
+# 发布目录格式：
+# TMS/linux/<版本>/TMS-<版本>-linux-<架构>
+# TMS/linux/<版本>/SHA256SUMS
+# 支持的 CPU 架构：x86_64、aarch64（ARM64）。
+# Linux 二进制采用 glibc 2.17 兼容基线，系统识别用于自动选择依赖安装方式。
 
-readonly APP_NAME APP_ID DOWNLOAD_HOST SERVICE_NAME
+readonly VERSION APP_NAME APP_ID DOWNLOAD_HOST SERVICE_NAME
 readonly SERVICE_USER="${APP_ID}"
 readonly INSTALL_DIR="${TMS_LOCAL_INSTALL_DIR:-/opt/ToMinerSystem-TMS}"
 readonly CONFIG_DIR="${TMS_LOCAL_CONFIG_DIR:-/etc/ToMinerSystem-TMS}"
 readonly CONFIG_FILE="${CONFIG_DIR}/local-relay.toml"
 readonly WEB_PORT_FILE="${CONFIG_DIR}/web-port"
-readonly BINARY_NAME="linux-TMS"
+readonly INSTALLED_VERSION_FILE="${CONFIG_DIR}/installed-version"
+readonly INSTALLED_ARCH_FILE="${CONFIG_DIR}/installed-architecture"
 readonly INSTALLED_BINARY_NAME="TMS"
 readonly LEGACY_SERVICE_NAME="tominersystem-tms"
 readonly LEGACY_CONFIG_DIR="/etc/tominersystem-tms"
-readonly EXPECTED_SHA256="ed04a5b24174c109a47a7ce4d62b6113187baedbdb704326f8f569ffed1d1a3f"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 readonly DOWNLOAD_BASE_URL="${TMS_DOWNLOAD_BASE_URL:-${DOWNLOAD_HOST}}"
+readonly RELEASE_API_URL="https://api.github.com/repos/ToMinerSystem/ToMinerSystem/contents/TMS/linux?ref=main"
 readonly WEB_PORT_MIN=52347
 readonly WEB_PORT_MAX=61892
 
 OS_ID=""
 OS_PRETTY_NAME=""
 PACKAGE_FAMILY=""
+CPU_ARCH=""
+EXPECTED_ELF_MACHINE=""
 NOLOGIN_SHELL="/sbin/nologin"
 SYSTEMD_PROTECT_SYSTEM="strict"
 SYSTEMD_WRITE_DIRECTIVE="ReadWritePaths"
 
 temporary_binary=""
+temporary_manifest=""
 source_binary=""
+source_manifest=""
+selected_binary_name=""
 
 cleanup() {
-  if [[ -n "${temporary_binary}" && -f "${temporary_binary}" ]]; then
-    rm -f -- "${temporary_binary}"
-  fi
+  [[ -z "${temporary_binary}" || ! -f "${temporary_binary}" ]] \
+    || rm -f -- "${temporary_binary}"
+  [[ -z "${temporary_manifest}" || ! -f "${temporary_manifest}" ]] \
+    || rm -f -- "${temporary_manifest}"
 }
 trap cleanup EXIT
 
@@ -50,19 +61,48 @@ fail() {
   exit 1
 }
 
+version_is_valid() {
+  [[ "${1:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
+detect_cpu_architecture() {
+  case "$(uname -m)" in
+    x86_64|amd64)
+      CPU_ARCH="x86_64"
+      EXPECTED_ELF_MACHINE="62"
+      ;;
+    aarch64|arm64)
+      CPU_ARCH="aarch64"
+      EXPECTED_ELF_MACHINE="183"
+      ;;
+    *)
+      fail "不支持的 CPU 架构：$(uname -m)。当前发布包支持 x86_64 和 aarch64（ARM64）"
+      ;;
+  esac
+}
+
 detect_supported_linux() {
   local systemd_version
-  [[ "${EUID}" -eq 0 ]] || fail "请使用 root 权限运行：sudo bash install-TMS.sh ${1:-install}"
-  [[ -r /etc/os-release ]] || fail "无法识别操作系统"
+  [[ "${EUID}" -eq 0 ]] \
+    || fail "请使用 root 权限运行：sudo bash install-TMS.sh ${1:-install}"
+  [[ -r /etc/os-release ]] || fail "无法识别 Linux 系统：缺少 /etc/os-release"
+
   OS_ID="$(awk -F= '$1 == "ID" { value=$2; gsub(/^"|"$/, "", value); print tolower(value); exit }' /etc/os-release)"
   OS_PRETTY_NAME="$(awk -F= '$1 == "PRETTY_NAME" { value=substr($0, index($0, "=") + 1); gsub(/^"|"$/, "", value); print value; exit }' /etc/os-release)"
   case "${OS_ID}" in
-    ubuntu|debian) PACKAGE_FAMILY="debian" ;;
-    centos) PACKAGE_FAMILY="centos" ;;
-    *) fail "仅支持 Ubuntu、Debian 和 CentOS，当前系统为 ${OS_PRETTY_NAME:-unknown}" ;;
+    ubuntu|debian)
+      PACKAGE_FAMILY="debian"
+      ;;
+    centos|rhel|rocky|almalinux|ol|fedora)
+      PACKAGE_FAMILY="rpm"
+      ;;
+    *)
+      fail "不支持的 Linux 系统：${OS_PRETTY_NAME:-${OS_ID:-unknown}}。当前支持 Ubuntu、Debian、CentOS、RHEL、Rocky Linux、AlmaLinux、Oracle Linux 和 Fedora"
+      ;;
   esac
-  [[ "$(uname -m)" == "x86_64" ]] || fail "当前发布包仅支持 x86_64，检测到 $(uname -m)"
-  command -v systemctl >/dev/null 2>&1 || fail "当前环境没有 systemd"
+
+  detect_cpu_architecture
+  command -v systemctl >/dev/null 2>&1 || fail "当前 Linux 系统没有 systemd"
   if command -v nologin >/dev/null 2>&1; then
     NOLOGIN_SHELL="$(command -v nologin)"
   fi
@@ -78,19 +118,22 @@ install_dependencies() {
     debian)
       export DEBIAN_FRONTEND=noninteractive
       apt-get update
-      apt-get install -y --no-install-recommends ca-certificates curl iproute2
+      apt-get install -y --no-install-recommends \
+        ca-certificates curl iproute2 openssl
       ;;
-    centos)
+    rpm)
       if command -v dnf >/dev/null 2>&1; then
-        dnf install -y ca-certificates curl iproute shadow-utils
+        dnf install -y ca-certificates curl iproute openssl shadow-utils
       elif command -v yum >/dev/null 2>&1; then
-        yum install -y ca-certificates curl iproute shadow-utils
+        yum install -y ca-certificates curl iproute openssl shadow-utils
       else
-        fail "CentOS 系统中未找到 dnf 或 yum"
+        fail "RPM 系统中未找到 dnf 或 yum"
       fi
       update-ca-trust 2>/dev/null || true
       ;;
-    *) fail "未初始化系统包管理器" ;;
+    *)
+      fail "未初始化 Linux 包管理器"
+      ;;
   esac
 }
 
@@ -124,37 +167,101 @@ local_ip() {
   echo "${detected:-127.0.0.1}"
 }
 
-obtain_binary() {
-  local local_binary="${SCRIPT_DIR}/linux/${BINARY_NAME}"
-  if [[ -f "${local_binary}" ]]; then
-    source_binary="${local_binary}"
+binary_name_for() {
+  local release_version="$1"
+  echo "TMS-${release_version}-linux-${CPU_ARCH}"
+}
+
+obtain_release() {
+  local release_version="$1" local_release_dir release_url
+  selected_binary_name="$(binary_name_for "${release_version}")"
+  local_release_dir="${SCRIPT_DIR}/linux/${release_version}"
+  if [[ -f "${local_release_dir}/${selected_binary_name}" \
+    && -f "${local_release_dir}/SHA256SUMS" ]]; then
+    source_binary="${local_release_dir}/${selected_binary_name}"
+    source_manifest="${local_release_dir}/SHA256SUMS"
     return 0
   fi
-  [[ -n "${DOWNLOAD_BASE_URL}" ]] || fail \
-    "未找到 linux/${BINARY_NAME}。请下载完整 TMS 目录，或修改脚本开头的 DOWNLOAD_HOST"
+
+  release_url="${DOWNLOAD_BASE_URL%/}/linux/${release_version}"
+  temporary_manifest="$(mktemp)"
   temporary_binary="$(mktemp)"
   curl --fail --location --proto '=https' --tlsv1.2 \
-    "${DOWNLOAD_BASE_URL%/}/linux/${BINARY_NAME}" \
-    --output "${temporary_binary}"
+    "${release_url}/SHA256SUMS" --output "${temporary_manifest}" \
+    || fail "无法下载 TMS ${release_version} 的 SHA256SUMS"
+  curl --fail --location --proto '=https' --tlsv1.2 \
+    "${release_url}/${selected_binary_name}" --output "${temporary_binary}" \
+    || fail "没有适用于 ${CPU_ARCH} 的 TMS ${release_version} Linux 程序"
+  source_manifest="${temporary_manifest}"
   source_binary="${temporary_binary}"
 }
 
-verify_elf() {
-  local binary="$1" magic actual_sha256
+verify_release() {
+  local binary="$1" manifest="$2" magic expected_sha256 actual_sha256 elf_machine
   magic="$(od -An -N4 -tx1 "${binary}" | tr -d ' \n')"
-  [[ "${magic}" == "7f454c46" ]] || fail "${BINARY_NAME} 不是 Linux ELF 程序"
-  actual_sha256="$(sha256sum "${binary}" | awk '{print $1}')"
-  [[ "${actual_sha256}" == "${EXPECTED_SHA256}" ]] \
-    || fail "${BINARY_NAME} SHA-256 校验失败"
+  [[ "${magic}" == "7f454c46" ]] || fail "${selected_binary_name} 不是 Linux ELF 程序"
+  elf_machine="$(od -An -j18 -N2 -tu2 "${binary}" | tr -d ' ')"
+  [[ "${elf_machine}" == "${EXPECTED_ELF_MACHINE}" ]] \
+    || fail "下载程序的 CPU 架构与当前 ${CPU_ARCH} 系统不一致"
+
+  expected_sha256="$(awk -v target="${selected_binary_name}" '
+    $2 == target || $2 == "*" target { print tolower($1); exit }
+  ' "${manifest}")"
+  [[ "${expected_sha256}" =~ ^[0-9a-f]{64}$ ]] \
+    || fail "SHA256SUMS 中缺少 ${selected_binary_name}"
+  actual_sha256="$(sha256sum "${binary}" | awk '{print tolower($1)}')"
+  [[ "${actual_sha256}" == "${expected_sha256}" ]] \
+    || fail "${selected_binary_name} SHA-256 校验失败"
+}
+
+installed_version() {
+  local value=""
+  if [[ -r "${INSTALLED_VERSION_FILE}" ]]; then
+    value="$(tr -d '[:space:]' < "${INSTALLED_VERSION_FILE}")"
+  fi
+  if version_is_valid "${value}"; then
+    echo "${value}"
+  else
+    echo "未安装"
+  fi
+}
+
+installed_architecture() {
+  if [[ -r "${INSTALLED_ARCH_FILE}" ]]; then
+    tr -d '[:space:]' < "${INSTALLED_ARCH_FILE}"
+  else
+    echo "未记录"
+  fi
+}
+
+latest_published_version() {
+  local response latest
+  response="$(curl --fail --silent --show-error --location \
+    --proto '=https' --tlsv1.2 \
+    --header 'Accept: application/vnd.github+json' \
+    --header 'User-Agent: ToMinerSystem-TMS-Installer' \
+    "${RELEASE_API_URL}")" \
+    || fail "无法读取 GitHub TMS 版本列表"
+  latest="$(printf '%s\n' "${response}" \
+    | tr '{' '\n' \
+    | sed -nE 's/.*"name"[[:space:]]*:[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' \
+    | sort -V \
+    | tail -n 1)"
+  version_is_valid "${latest}" \
+    || fail "GitHub TMS/linux 目录中没有正式版本"
+  echo "${latest}"
 }
 
 install_tms() {
-  local web_port detected_ip
+  local requested_version="${1:-${VERSION}}" dependencies_ready="${2:-false}" web_port detected_ip
+  version_is_valid "${requested_version}" \
+    || fail "版本号格式无效，应为 x.y.z，例如 ${VERSION}"
   detect_supported_linux install
-  install_dependencies
-
-  obtain_binary
-  verify_elf "${source_binary}"
+  if [[ "${dependencies_ready}" != "true" ]]; then
+    install_dependencies
+  fi
+  obtain_release "${requested_version}"
+  verify_release "${source_binary}" "${source_manifest}"
 
   if ! getent group "${SERVICE_USER}" >/dev/null 2>&1; then
     groupadd --system "${SERVICE_USER}"
@@ -166,6 +273,7 @@ install_tms() {
   if systemctl list-unit-files "${LEGACY_SERVICE_NAME}.service" --no-legend 2>/dev/null | grep -q .; then
     systemctl disable --now "${LEGACY_SERVICE_NAME}.service" 2>/dev/null || true
   fi
+
   install -d -o root -g root -m 0755 "${INSTALL_DIR}" "${INSTALL_DIR}/bin"
   install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}"
   if [[ ! -e "${CONFIG_FILE}" && -r "${LEGACY_CONFIG_DIR}/local-relay.toml" ]]; then
@@ -206,7 +314,8 @@ EOF
   chmod 0750 "${CONFIG_DIR}"
   chmod 0640 "${CONFIG_FILE}" "${WEB_PORT_FILE}"
 
-  "${INSTALL_DIR}/bin/${INSTALLED_BINARY_NAME}" --config "${CONFIG_FILE}" --check
+  "${INSTALL_DIR}/bin/${INSTALLED_BINARY_NAME}" \
+    --config "${CONFIG_FILE}" --check
 
   cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<EOF
 [Unit]
@@ -235,26 +344,70 @@ ${SYSTEMD_WRITE_DIRECTIVE}=${CONFIG_DIR}
 WantedBy=multi-user.target
 EOF
   systemctl daemon-reload
-  systemctl enable --now "${SERVICE_NAME}.service"
+  systemctl enable "${SERVICE_NAME}.service"
+  if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+    systemctl restart "${SERVICE_NAME}.service"
+  else
+    systemctl start "${SERVICE_NAME}.service"
+  fi
   sleep 2
   systemctl is-active --quiet "${SERVICE_NAME}.service" || {
     systemctl status "${SERVICE_NAME}.service" --no-pager --full || true
     journalctl -u "${SERVICE_NAME}.service" -n 100 --no-pager || true
     fail "TMS 服务启动失败"
   }
-  curl --fail --silent --show-error "http://127.0.0.1:${web_port}/api/status" >/dev/null \
+  curl --fail --silent --show-error \
+    "http://127.0.0.1:${web_port}/api/status" >/dev/null \
     || fail "TMS Web 健康检查失败"
+
+  printf '%s\n' "${requested_version}" > "${INSTALLED_VERSION_FILE}"
+  printf '%s\n' "${CPU_ARCH}" > "${INSTALLED_ARCH_FILE}"
+  chmod 0644 "${INSTALLED_VERSION_FILE}" "${INSTALLED_ARCH_FILE}"
 
   detected_ip="$(local_ip)"
   echo ""
-  echo "TMS 安装完成并已设置开机自启动。"
+  echo "TMS ${requested_version} 安装完成并已设置开机自启动。"
   echo "检测到系统：${OS_PRETTY_NAME}"
+  echo "检测到架构：${CPU_ARCH}"
   echo "Web 端口：${web_port}"
   echo "本机访问：http://127.0.0.1:${web_port}/"
   echo "远程访问：ssh -L ${web_port}:127.0.0.1:${web_port} <用户>@${detected_ip}"
   echo "打开 Web 后输入 ToMinerSystem 管理端生成的 TMS 配对码；识别码会自动保存并连接。"
   echo "配置文件：${CONFIG_FILE}"
   echo "查看日志：journalctl -u ${SERVICE_NAME} -f"
+}
+
+update_tms() {
+  local current_version current_arch latest_version
+  detect_supported_linux update
+  install_dependencies
+  current_version="$(installed_version)"
+  current_arch="$(installed_architecture)"
+  latest_version="$(latest_published_version)"
+  echo "当前安装版本：${current_version}"
+  echo "当前安装架构：${current_arch}"
+  echo "GitHub 最新版本：${latest_version}"
+  if [[ "${current_version}" == "${latest_version}" \
+    && "${current_arch}" == "${CPU_ARCH}" ]]; then
+    echo "当前已经是适用于 ${CPU_ARCH} 的最新版本。"
+    return 0
+  fi
+  install_tms "${latest_version}" true
+}
+
+prompt_install_version() {
+  local requested_version="${1:-}"
+  if [[ -z "${requested_version}" ]]; then
+    read -r -p "请输入要安装的版本号（直接回车安装 ${VERSION}）：" requested_version
+  fi
+  install_tms "${requested_version:-${VERSION}}"
+}
+
+run_service_action() {
+  local action="$1"
+  detect_supported_linux "${action}"
+  systemctl "${action}" "${SERVICE_NAME}.service"
+  systemctl status "${SERVICE_NAME}.service" --no-pager --full || true
 }
 
 uninstall_tms() {
@@ -266,28 +419,75 @@ uninstall_tms() {
   systemctl daemon-reload
   rm -f -- "${INSTALL_DIR}/bin/${INSTALLED_BINARY_NAME}"
   rmdir -- "${INSTALL_DIR}/bin" "${INSTALL_DIR}" 2>/dev/null || true
-  echo "TMS 程序已卸载；识别码和线路配置保留在 ${CONFIG_DIR}。"
+  rm -f -- "${INSTALLED_VERSION_FILE}" "${INSTALLED_ARCH_FILE}"
+  echo "TMS 程序已卸载；识别码、线路配置和 Web 端口保留在 ${CONFIG_DIR}。"
 }
 
-command_name="${1:-install}"
+show_menu() {
+  local choice current_version current_arch
+  current_version="$(installed_version)"
+  current_arch="$(installed_architecture)"
+  echo ""
+  echo "========================================"
+  echo " ${APP_NAME} ${VERSION} Linux 管理工具"
+  echo " 当前安装版本：${current_version}"
+  echo " 当前安装架构：${current_arch}"
+  echo " 当前系统架构：$(uname -m)"
+  echo "========================================"
+  echo "  1. 安装 TMS"
+  echo "  2. 更新 TMS"
+  echo "  3. 停止运行 TMS"
+  echo "  4. 启动 TMS"
+  echo "  5. 重启 TMS"
+  echo "  6. 卸载 TMS"
+  echo "========================================"
+  read -r -p "请选择 [1-6]：" choice || return 0
+  case "${choice}" in
+    1) prompt_install_version ;;
+    2) update_tms ;;
+    3) run_service_action stop ;;
+    4) run_service_action start ;;
+    5) run_service_action restart ;;
+    6) uninstall_tms ;;
+    *) fail "无效选项，请输入 1-6" ;;
+  esac
+}
+
+if [[ "$#" -eq 0 ]]; then
+  show_menu
+  exit 0
+fi
+
+command_name="$1"
 case "${command_name}" in
-  install) install_tms ;;
+  install)
+    install_tms "${2:-${VERSION}}"
+    ;;
+  install-version)
+    [[ -n "${2:-}" ]] || fail "install-version 需要版本号，例如 ${VERSION}"
+    install_tms "$2"
+    ;;
+  update)
+    update_tms
+    ;;
   start|stop|restart)
-    detect_supported_linux "${command_name}"
-    systemctl "${command_name}" "${SERVICE_NAME}.service"
-    systemctl status "${SERVICE_NAME}.service" --no-pager --full
+    run_service_action "${command_name}"
     ;;
   status)
     detect_supported_linux status
-    systemctl status "${SERVICE_NAME}.service" --no-pager --full
+    systemctl status "${SERVICE_NAME}.service" --no-pager --full || true
     ;;
   web-port)
     detect_supported_linux web-port
+    [[ -r "${WEB_PORT_FILE}" ]] || fail "尚未安装或 Web 端口文件不存在"
     cat "${WEB_PORT_FILE}"
     ;;
-  uninstall) uninstall_tms ;;
+  uninstall)
+    uninstall_tms
+    ;;
   *)
-    echo "用法：sudo bash install-TMS.sh {install|start|stop|restart|status|web-port|uninstall}" >&2
+    echo "用法：sudo bash install-TMS.sh [install [x.y.z]|install-version x.y.z|update|start|stop|restart|status|web-port|uninstall]" >&2
+    echo "不带参数运行时显示交互式选择菜单。" >&2
     exit 2
     ;;
 esac
