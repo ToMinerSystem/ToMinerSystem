@@ -6,11 +6,11 @@ VERSION="1.0.0"
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem TMS"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/linux"
 SERVICE_NAME="ToMinerSystem-TMS"
 
 # 发布目录格式：
-# TMS/linux/<版本>/TMS-<版本>-linux-<架构>
+# TMS/linux/TMS-<版本>-linux-<架构>
 # 支持的 CPU 架构：x86_64、aarch64（ARM64）。
 # Linux 二进制采用 glibc 2.17 兼容基线，系统识别用于自动选择依赖安装方式。
 
@@ -190,8 +190,12 @@ obtain_release() {
     source_binary="${local_release_dir}/${selected_binary_name}"
     return 0
   fi
+  if [[ -f "${SCRIPT_DIR}/linux/${selected_binary_name}" ]]; then
+    source_binary="${SCRIPT_DIR}/linux/${selected_binary_name}"
+    return 0
+  fi
 
-  release_url="${DOWNLOAD_BASE_URL%/}/linux/${release_version}"
+  release_url="${DOWNLOAD_BASE_URL%/}"
   temporary_binary="$(mktemp)"
   curl --fail --location --proto '=https' --tlsv1.2 \
     "${release_url}/${selected_binary_name}" --output "${temporary_binary}" \
@@ -244,7 +248,7 @@ latest_published_version() {
     || fail "无法读取 GitHub TMS 版本列表"
   latest="$(printf '%s\n' "${response}" \
     | tr '{' '\n' \
-    | sed -nE 's/.*"name"[[:space:]]*:[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' \
+    | sed -nE 's/.*"name"[[:space:]]*:[[:space:]]*"TMS-([0-9]+\.[0-9]+\.[0-9]+)-linux-(x86_64|aarch64)".*/\1/p' \
     | sort -V \
     | tail -n 1)"
   version_is_valid "${latest}" \
