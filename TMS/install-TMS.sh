@@ -6,7 +6,7 @@ VERSION="1.0.0"
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem TMS"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/linux"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS"
 SERVICE_NAME="ToMinerSystem-TMS"
 
 # 发布目录格式：
