@@ -11,7 +11,7 @@ DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/linux"
 SERVICE_NAME="tominersystem"
 
 # ToMinerSystem Ubuntu/Debian/CentOS x86_64 二进制安装器。
-# 默认从项目根目录的 linux 目录读取当前版本程序。
+# 默认从项目的 linux 目录读取 tominersystem-server-linux-x86_64。
 # 远程下载目录统一在上方 DOWNLOAD_HOST 中修改。
 # TMS_DOWNLOAD_BASE_URL 环境变量仍可在单次安装时覆盖该地址。
 
@@ -23,7 +23,7 @@ readonly CONFIG_FILE="${CONFIG_DIR}/config.toml"
 readonly WEB_PORT_FILE="${CONFIG_DIR}/web-port"
 readonly BOOTSTRAP_PORT_FILE="${CONFIG_DIR}/bootstrap-listener-port"
 readonly INSTALLED_VERSION_FILE="${CONFIG_DIR}/installed-version"
-readonly BINARY_NAME="ToMinerSystem-1.0.0"
+readonly BINARY_NAME="${APP_ID}-server-linux-x86_64"
 readonly EXPECTED_SHA256="a5ac6e9a8c5583bf4dec64d134dea945a7051a9d99c2522fb723e5685ebe3741"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
@@ -514,43 +514,39 @@ run_service_action() {
 
 show_menu() {
   local choice current_version
-  while true; do
-    current_version="$(installed_version)"
-    echo ""
-    echo "========================================"
-    echo " ${APP_NAME} ${VERSION} Linux 管理工具"
-    echo " 当前安装版本：${current_version}"
-    echo "========================================"
-    echo "  1. 安装软件"
-    echo "  2. 更新"
-    echo "  3. 启动软件"
-    echo "  4. 停止软件"
-    echo "  5. 重启软件"
-    echo "  6. 查看 Web 端口"
-    echo "  7. 修改 Web 端口"
-    echo "  8. 卸载软件"
-    echo "  9. 安装指定版本"
-    echo " 10. 重置账号密码"
-    echo "  0. 退出"
-    echo "========================================"
-    read -r -p "请选择 [0-10]：" choice || return 0
-    case "${choice}" in
-      1) install_server ;;
-      2) update_server ;;
-      3) run_service_action start ;;
-      4) run_service_action stop ;;
-      5) run_service_action restart ;;
-      6) show_web_port ;;
-      7) change_web_port ;;
-      8) uninstall_server ;;
-      9) prompt_install_version ;;
-      10) reset_password ;;
-      0) echo "已退出。"; return 0 ;;
-      *) echo "无效选项，请输入 0-10。" ;;
-    esac
-    echo ""
-    read -r -p "按 Enter 键返回主菜单……" _ || return 0
-  done
+  current_version="$(installed_version)"
+  echo ""
+  echo "========================================"
+  echo " ${APP_NAME} ${VERSION} Linux 管理工具"
+  echo " 当前安装版本：${current_version}"
+  echo "========================================"
+  echo "  1. 安装软件"
+  echo "  2. 更新"
+  echo "  3. 启动软件"
+  echo "  4. 停止软件"
+  echo "  5. 重启软件"
+  echo "  6. 查看 Web 端口"
+  echo "  7. 修改 Web 端口"
+  echo "  8. 卸载软件"
+  echo "  9. 安装指定版本"
+  echo " 10. 重置账号密码"
+  echo "  0. 退出"
+  echo "========================================"
+  read -r -p "请选择 [0-10]：" choice || return 0
+  case "${choice}" in
+    1) install_server ;;
+    2) update_server ;;
+    3) run_service_action start ;;
+    4) run_service_action stop ;;
+    5) run_service_action restart ;;
+    6) show_web_port ;;
+    7) change_web_port ;;
+    8) uninstall_server ;;
+    9) prompt_install_version ;;
+    10) reset_password ;;
+    0) echo "已退出。" ;;
+    *) echo "无效选项，请输入 0-10。" ;;
+  esac
 }
 
 if [[ "$#" -eq 0 ]]; then
