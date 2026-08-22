@@ -11,7 +11,6 @@ SERVICE_NAME="ToMinerSystem-TMS"
 
 # 发布目录格式：
 # TMS/linux/<版本>/TMS-<版本>-linux-<架构>
-# TMS/linux/<版本>/SHA256SUMS
 # 支持的 CPU 架构：x86_64、aarch64（ARM64）。
 # Linux 二进制采用 glibc 2.17 兼容基线，系统识别用于自动选择依赖安装方式。
 
@@ -43,16 +42,12 @@ SYSTEMD_PROTECT_SYSTEM="strict"
 SYSTEMD_WRITE_DIRECTIVE="ReadWritePaths"
 
 temporary_binary=""
-temporary_manifest=""
 source_binary=""
-source_manifest=""
 selected_binary_name=""
 
 cleanup() {
   [[ -z "${temporary_binary}" || ! -f "${temporary_binary}" ]] \
     || rm -f -- "${temporary_binary}"
-  [[ -z "${temporary_manifest}" || ! -f "${temporary_manifest}" ]] \
-    || rm -f -- "${temporary_manifest}"
 }
 trap cleanup EXIT
 
@@ -172,43 +167,48 @@ binary_name_for() {
   echo "TMS-${release_version}-linux-${CPU_ARCH}"
 }
 
+expected_sha256_for() {
+  local release_version="$1"
+  case "${release_version}:${CPU_ARCH}" in
+    1.0.0:x86_64)
+      echo "ed04a5b24174c109a47a7ce4d62b6113187baedbdb704326f8f569ffed1d1a3f"
+      ;;
+    1.0.0:aarch64)
+      echo "40311bfa2275990d8aebdfe0a8f1e60b50722280002b5507712a582a3b657c3e"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 obtain_release() {
   local release_version="$1" local_release_dir release_url
   selected_binary_name="$(binary_name_for "${release_version}")"
   local_release_dir="${SCRIPT_DIR}/linux/${release_version}"
-  if [[ -f "${local_release_dir}/${selected_binary_name}" \
-    && -f "${local_release_dir}/SHA256SUMS" ]]; then
+  if [[ -f "${local_release_dir}/${selected_binary_name}" ]]; then
     source_binary="${local_release_dir}/${selected_binary_name}"
-    source_manifest="${local_release_dir}/SHA256SUMS"
     return 0
   fi
 
   release_url="${DOWNLOAD_BASE_URL%/}/linux/${release_version}"
-  temporary_manifest="$(mktemp)"
   temporary_binary="$(mktemp)"
-  curl --fail --location --proto '=https' --tlsv1.2 \
-    "${release_url}/SHA256SUMS" --output "${temporary_manifest}" \
-    || fail "无法下载 TMS ${release_version} 的 SHA256SUMS"
   curl --fail --location --proto '=https' --tlsv1.2 \
     "${release_url}/${selected_binary_name}" --output "${temporary_binary}" \
     || fail "没有适用于 ${CPU_ARCH} 的 TMS ${release_version} Linux 程序"
-  source_manifest="${temporary_manifest}"
   source_binary="${temporary_binary}"
 }
 
 verify_release() {
-  local binary="$1" manifest="$2" magic expected_sha256 actual_sha256 elf_machine
+  local binary="$1" release_version="$2" magic expected_sha256 actual_sha256 elf_machine
   magic="$(od -An -N4 -tx1 "${binary}" | tr -d ' \n')"
   [[ "${magic}" == "7f454c46" ]] || fail "${selected_binary_name} 不是 Linux ELF 程序"
   elf_machine="$(od -An -j18 -N2 -tu2 "${binary}" | tr -d ' ')"
   [[ "${elf_machine}" == "${EXPECTED_ELF_MACHINE}" ]] \
     || fail "下载程序的 CPU 架构与当前 ${CPU_ARCH} 系统不一致"
 
-  expected_sha256="$(awk -v target="${selected_binary_name}" '
-    $2 == target || $2 == "*" target { print tolower($1); exit }
-  ' "${manifest}")"
-  [[ "${expected_sha256}" =~ ^[0-9a-f]{64}$ ]] \
-    || fail "SHA256SUMS 中缺少 ${selected_binary_name}"
+  expected_sha256="$(expected_sha256_for "${release_version}")" \
+    || fail "安装脚本中没有 TMS ${release_version} ${CPU_ARCH} 的 SHA-256 校验值"
   actual_sha256="$(sha256sum "${binary}" | awk '{print tolower($1)}')"
   [[ "${actual_sha256}" == "${expected_sha256}" ]] \
     || fail "${selected_binary_name} SHA-256 校验失败"
@@ -261,7 +261,7 @@ install_tms() {
     install_dependencies
   fi
   obtain_release "${requested_version}"
-  verify_release "${source_binary}" "${source_manifest}"
+  verify_release "${source_binary}" "${requested_version}"
 
   if ! getent group "${SERVICE_USER}" >/dev/null 2>&1; then
     groupadd --system "${SERVICE_USER}"
