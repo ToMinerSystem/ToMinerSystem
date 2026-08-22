@@ -6,7 +6,7 @@ VERSION="1.0.0"
 # Customer customization: change this block for white-label builds.
 APP_NAME="ToMinerSystem TMS"
 APP_ID="tominersystem"
-DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/linux"
+DOWNLOAD_HOST="https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS"
 SERVICE_NAME="ToMinerSystem-TMS"
 
 # 发布目录格式：
@@ -395,12 +395,8 @@ update_tms() {
   install_tms "${latest_version}" true
 }
 
-prompt_install_version() {
-  local requested_version="${1:-}"
-  if [[ -z "${requested_version}" ]]; then
-    read -r -p "请输入要安装的版本号（直接回车安装 ${VERSION}）：" requested_version
-  fi
-  install_tms "${requested_version:-${VERSION}}"
+install_current_version() {
+  install_tms "${VERSION}"
 }
 
 run_service_action() {
@@ -443,7 +439,7 @@ show_menu() {
   echo "========================================"
   read -r -p "请选择 [1-6]：" choice || return 0
   case "${choice}" in
-    1) prompt_install_version ;;
+    1) install_current_version ;;
     2) update_tms ;;
     3) run_service_action stop ;;
     4) run_service_action start ;;
