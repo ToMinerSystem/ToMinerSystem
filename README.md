@@ -110,13 +110,13 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <p>&emsp;&emsp;本地 TMS 页面会显示矿机应连接的局域网地址，例如 <code>192.168.1.5:3333</code>。
 
-### **其他问题**
+### **注意事项**
 
 <p>&emsp;&emsp;Web 页面提示 <code>Failed to fetch</code> 时，请检查服务是否正在运行、访问端口是否正确，以及 Windows 防火墙、UFW 或云安全组是否放行管理端口。</p>
 
 <p>&emsp;&emsp;首次登录后请立即修改管理员密码。不要把管理 Web 端直接暴露给整个互联网，建议使用防火墙白名单、VPN、SSH 隧道或可信反向代理限制访问来源。</p>
 
-<p>&emsp;&emsp;TMS 配对码属于连接凭据，请勿在公开仓库、群聊或截图中泄露。钱包密码、Token、私钥和管理凭据也不应写入公开日志。</p>
+<p>&emsp;&emsp;TMS 配对码属于连接凭据，请勿在公开仓库、群聊或截图中泄露。</p>
 
    </td>
    </tr>
