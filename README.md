@@ -118,8 +118,6 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <p>&emsp;&emsp;TMS 配对码属于连接凭据，请勿在公开仓库、群聊或截图中泄露。钱包密码、Token、私钥和管理凭据也不应写入公开日志。</p>
 
-<p>&emsp;&emsp;Linux 安装脚本开头集中设置了 <code>VERSION</code>、<code>APP_NAME</code>、<code>APP_ID</code>、<code>DOWNLOAD_HOST</code> 和 <code>SERVICE_NAME</code>，自行托管发行文件时可以在该区域修改下载地址和品牌信息。</p>
-
    </td>
    </tr>
 </table>
