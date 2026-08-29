@@ -116,7 +116,7 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <div align="center">
 
-ToMinerSystem v1.0.0 · Windows / Ubuntu / Debian / CentOS · 开发阶段服务费 0%
+ToMinerSystem · Windows / Ubuntu / Debian / CentOS · 开发阶段服务费 0%
 
 <br>
 
