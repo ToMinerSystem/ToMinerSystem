@@ -17,9 +17,6 @@
 <a href="#tms">
    <img src="https://img.shields.io/badge/TMS%E5%AE%A2%E6%88%B7%E7%AB%AF-%F0%9F%94%90-5865F2" alt="TMS客户端">
 </a>
-<a href="#fee">
-   <img src="https://img.shields.io/badge/%E9%BB%98%E8%AE%A4%E6%9C%8D%E5%8A%A1%E8%B4%B9-0%25-16A34A" alt="默认服务费0%">
-</a>
 
 </div>
 
