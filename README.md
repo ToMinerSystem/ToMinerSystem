@@ -115,64 +115,7 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <p>&emsp;&emsp;首次打开 TMS 客户端时，在 ToMinerSystem 服务端 Web 的 TMS 页面复制配对码并粘贴保存。绑定成功后，客户端会自动连接服务器并同步 Web 端创建、修改、启停或删除的 TMS 端口。</p>
 
-<p>&emsp;&emsp;本地 TMS 页面会显示矿机应连接的局域网地址，例如 <code>192.168.1.5:3333</code>。识别码保存后下次打开不需要重复输入；更换识别码并保存后会按新配置自动连接。</p>
-
-<p>&emsp;&emsp;Linux TMS 常用管理指令：</p>
-
-```sh
-sudo bash TMS-install.sh start
-sudo bash TMS-install.sh stop
-sudo bash TMS-install.sh restart
-sudo bash TMS-install.sh update
-sudo bash TMS-install.sh install-version 1.0.0
-sudo bash TMS-install.sh status
-sudo bash TMS-install.sh web-port
-sudo bash TMS-install.sh uninstall
-```
-
-   </td>
-   </tr>
-   <tr>
-   <td>
-
-<span id="fee"></span>
-
-### 👉 **服务费说明**
-
-<p>&emsp;&emsp;程序、安装脚本和初始配置默认均为 <strong>0% 服务费</strong>，不预置服务费账户或服务费矿池。</p>
-
-<p>&emsp;&emsp;服务费按端口单独配置。服务费账户非空且比例大于 0 时，保存端口后自动启用；清空账户或把比例设为 0 后自动关闭，不需要额外的启用开关。</p>
-
-<p>&emsp;&emsp;服务费统计只计入对应上游真实确认的 accepted Share 或工作量。服务费上游连接、认证、Job 或路由异常时，程序优先保持或恢复主池中转，不使用虚假数据补偿差额。</p>
-
-<p>&emsp;&emsp;Nginx 是 Raw TCP/SSL 字节转发模式，不解析矿机账户、Worker、Job、Share 或矿池响应，因此不提供服务费调度。</p>
-
-   </td>
-   </tr>
-   <tr>
-   <td>
-
-### 👉 **下载文件**
-
-<p>&emsp;&emsp;当前发行目录包含以下文件：</p>
-
-```text
-README-1.0.0.md
-install.sh
-linux/ToMinerSystem-1.0.0
-windows/ToMinerSystem-1.0.0.exe
-TMS/TMS-install.sh
-TMS/linux/TMS-1.0.0-linux-x86_64
-TMS/linux/TMS-1.0.0-linux-aarch64
-TMS/windows/win-TMS.exe
-```
-
-<p>&emsp;&emsp;Linux 安装脚本会校验下载程序的 SHA-256。运行 Windows 程序前，建议同时核对发布页提供的文件校验值。</p>
-
-   </td>
-   </tr>
-   <tr>
-   <td>
+<p>&emsp;&emsp;本地 TMS 页面会显示矿机应连接的局域网地址，例如 <code>192.168.1.5:3333</code>。
 
 ### 👉 **其他问题**
 
