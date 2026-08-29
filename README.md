@@ -56,26 +56,7 @@
    ```sh
    bash <(curl -s -L https://github.com/ToMinerSystem/ToMinerSystem/raw/main/install.sh)
    ```
-
-   <p>&emsp;&emsp;安装脚本会自动识别发行版，Ubuntu/Debian 使用 <code>apt-get</code>，CentOS 使用 <code>dnf</code> 或 <code>yum</code>；随后下载 glibc 2.17 兼容程序、随机生成 Web 端口和初始密码，并注册 systemd 开机自启动服务。</p>
-
    <p>&emsp;&emsp;默认后台账户为 <code>admin</code>，初始密码和 Web 访问地址以安装完成后的终端提示为准。</p>
-
-   sudo bash install.sh uninstall
-   ```
-
-   <p>&emsp;&emsp;菜单中的“更新”会自动识别 GitHub 中最高的正式版本目录；“安装指定版本”可输入 <code>x.y.z</code> 版本号进行安装或回退。</p>
-
-   <p>&emsp;&emsp;查看实时日志：</p>
-
-   ```sh
-   sudo journalctl -u tominersystem -f
-   ```
-
-   </td>
-   </tr>
-   <tr>
-   <td>
 
 ### 👉 **Windows 安装**
 
