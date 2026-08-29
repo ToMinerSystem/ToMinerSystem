@@ -4,7 +4,7 @@
 
 # ToMinerSystem
 
-### <a href="#anzhuang">多币种矿池中转，可通过 TMS 建立本地加密传输！点击查看！</a>
+### 多币种矿池中转，可通过 TMS 建立本地加密传输！点击查看！
 
 <br>
 
@@ -46,7 +46,7 @@
 
 您应该理解并遵守当地的法律法规。如果您使用此产品，默认代表您接受上述许可与限制。若因使用本产品引起法律问题，相关责任由使用者自行承担。
 
-### 👉 **Linux 安装**
+### **Linux 安装**
 
    <p>&emsp;&emsp;Ubuntu、Debian 或 CentOS x86_64 服务器运行以下 Shell 指令打开 ToMinerSystem 安装菜单：</p>
 
@@ -55,13 +55,11 @@
    ```
    <p>&emsp;&emsp;默认后台账户为 <code>admin</code>，初始密码和 Web 访问地址以安装完成后的终端提示为准。</p>
 
-### 👉 **Windows 安装**
+### **Windows 安装**
 
    <p>&emsp;&emsp;请直接从此项目的 Windows 目录下载服务端程序：</p>
 
-   ```text
-   windows/ToMinerSystem-1.0.0.exe
-   ```
+   <p>&emsp;&emsp;<code>windows/ToMinerSystem-1.0.0.exe</code></p>
 
    <p>&emsp;&emsp;下载地址：<a href="windows/ToMinerSystem-1.0.0.exe">ToMinerSystem-1.0.0.exe</a></p>
 
@@ -78,32 +76,27 @@
 
 <span id="bizhong"></span>
 
-### 👉 **支持的算法、协议及币种**
+### **支持的算法、协议及币种**
 
-```text
-  算法 / 协议             支持的币种或模式
-  SHA256D                 BTC、BCH
-  SCRYPT                  LTC
-  ETHASH / ETHPROXY       ETC
-  KHEAVYHASH              KAS
-  ALEO ADAPTER            ALEO
-  PEARLHASH LINE JSON     PRL
-  RAW TCP / SSL           Nginx
-```
+| 算法 / 协议 | 支持的币种或模式 |
+| --- | --- |
+| SHA256D | BTC、BCH |
+| SCRYPT | LTC |
+| ETHASH / ETHPROXY | ETC |
+| KHEAVYHASH | KAS |
+| ALEO ADAPTER | ALEO |
+| PEARLHASH LINE JSON | PRL |
+| RAW TCP / SSL | Nginx |
 
-### 👉 **TMS 本地加密客户端**
+### **TMS 本地加密客户端**
 
 <p>&emsp;&emsp;TMS 用于让局域网矿机先连接本地客户端，再通过加密链路连接远程 ToMinerSystem 服务端：</p>
 
-```text
-矿机 ──TCP/SSL──> 本地 TMS 客户端 ══加密链路══> ToMinerSystem 服务端 ──> 矿池
-```
+<p><code>矿机 ──TCP/SSL──&gt; 本地 TMS 客户端 ══加密链路══&gt; ToMinerSystem 服务端 ──&gt; 矿池</code></p>
 
 <p>&emsp;&emsp;Windows 版本下载：</p>
 
-```text
-TMS/windows/win-TMS.exe
-```
+<p><code>TMS/windows/win-TMS.exe</code></p>
 
 <p>&emsp;&emsp;下载地址：<a href="TMS/windows/win-TMS.exe">win-TMS.exe</a></p>
 
@@ -117,7 +110,7 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <p>&emsp;&emsp;本地 TMS 页面会显示矿机应连接的局域网地址，例如 <code>192.168.1.5:3333</code>。
 
-### 👉 **其他问题**
+### **其他问题**
 
 <p>&emsp;&emsp;Web 页面提示 <code>Failed to fetch</code> 时，请检查服务是否正在运行、访问端口是否正确，以及 Windows 防火墙、UFW 或云安全组是否放行管理端口。</p>
 
@@ -138,4 +131,3 @@ ToMinerSystem v1.0.0 · Windows / Ubuntu / Debian / CentOS · 开发阶段服务
 <br>
 
 </div>
-
