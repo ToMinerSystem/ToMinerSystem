@@ -137,7 +137,5 @@ ToMinerSystem v1.0.0 · Windows / Ubuntu / Debian / CentOS · 开发阶段服务
 
 <br>
 
-<a href="#top">返回顶部</a>
-
 </div>
 
