@@ -129,15 +129,83 @@ random_available_port() {
   return 1
 }
 
+valid_ipv4() {
+  local value="$1" first second third fourth extra octet
+  IFS='.' read -r first second third fourth extra <<< "${value}"
+  [[ -z "${extra:-}" ]] || return 1
+  for octet in "${first:-}" "${second:-}" "${third:-}" "${fourth:-}"; do
+    [[ "${octet}" =~ ^[0-9]{1,3}$ ]] || return 1
+    (( 10#${octet} <= 255 )) || return 1
+  done
+}
+
+public_ipv4() {
+  local value="$1" first second third fourth
+  valid_ipv4 "${value}" || return 1
+  IFS='.' read -r first second third fourth <<< "${value}"
+  first=$((10#${first}))
+  second=$((10#${second}))
+  third=$((10#${third}))
+  fourth=$((10#${fourth}))
+
+  # 排除私网、回环、链路本地、运营商级 NAT、文档网段和组播地址。
+  (( first != 0 && first != 10 && first != 127 && first < 224 )) || return 1
+  (( first != 100 || second < 64 || second > 127 )) || return 1
+  (( first != 169 || second != 254 )) || return 1
+  (( first != 172 || second < 16 || second > 31 )) || return 1
+  (( first != 192 || second != 168 )) || return 1
+  (( first != 198 || (second != 18 && second != 19) )) || return 1
+  (( first != 192 || second != 0 || third != 2 )) || return 1
+  (( first != 198 || second != 51 || third != 100 )) || return 1
+  (( first != 203 || second != 0 || third != 113 )) || return 1
+}
+
+fetch_public_ipv4() {
+  local endpoint detected
+  for endpoint in \
+    "https://api.ipify.org" \
+    "https://checkip.amazonaws.com" \
+    "https://icanhazip.com"; do
+    detected="$(curl --fail --silent --show-error --location \
+      --proto '=https' --tlsv1.2 --connect-timeout 3 --max-time 6 \
+      "${endpoint}" 2>/dev/null || true)"
+    detected="$(printf '%s' "${detected}" | tr -d '[:space:]')"
+    if public_ipv4 "${detected}"; then
+      echo "${detected}"
+      return 0
+    fi
+  done
+  return 1
+}
+
 server_ip() {
   local detected="${TMS_SERVER_IP:-}"
-  if [[ -z "${detected}" ]]; then
-    detected="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')"
+  detected="$(printf '%s' "${detected}" | tr -d '[:space:]')"
+  if [[ -n "${detected}" ]]; then
+    if valid_ipv4 "${detected}" \
+      || [[ "${detected}" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+      echo "${detected}"
+      return 0
+    fi
+    echo "警告：忽略无效的 TMS_SERVER_IP：${detected}" >&2
   fi
-  if [[ -z "${detected}" ]]; then
+
+  if detected="$(fetch_public_ipv4)"; then
+    echo "${detected}"
+    return 0
+  fi
+
+  echo "警告：无法从 HTTPS 服务获取公网 IPv4，将使用本机路由地址。" >&2
+  detected="$(ip -4 route get 1.1.1.1 2>/dev/null \
+    | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')"
+  if ! valid_ipv4 "${detected}"; then
     detected="$(hostname -I 2>/dev/null | awk '{print $1}')"
   fi
-  echo "${detected:-127.0.0.1}"
+  if valid_ipv4 "${detected}"; then
+    echo "${detected}"
+  else
+    echo "127.0.0.1"
+  fi
 }
 
 obtain_binary() {
