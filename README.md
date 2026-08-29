@@ -31,10 +31,6 @@
 
 ## 服务协议
 
-> [!CAUTION]
-
-<details>
-
 本产品并非 VPN 类型产品，因为它无法使不允许地区访问禁止访问的内容。
 
 本产品为矿机、矿场管理软件，并非通过不正当手段获取矿机数据。所有接入的设备均需设备拥有者主动设置矿机连接地址，以此确保任意使用本程序的客户拥有知情权。
@@ -53,8 +49,6 @@
 
 您应该理解并遵守当地的法律法规。如果您使用此产品，默认代表您接受上述许可与限制。若因使用本产品引起法律问题，相关责任由使用者自行承担。
 
-</details>
-
 ### 👉 **Linux 安装**
 
    <p>&emsp;&emsp;Ubuntu、Debian 或 CentOS x86_64 服务器运行以下 Shell 指令打开 ToMinerSystem 安装菜单：</p>
@@ -67,19 +61,6 @@
 
    <p>&emsp;&emsp;默认后台账户为 <code>admin</code>，初始密码和 Web 访问地址以安装完成后的终端提示为准。</p>
 
-   <p>&emsp;&emsp;Web 端口首次安装时会在 <code>52347–61892</code> 范围内随机生成；普通启动或系统重启不会改变，卸载后重新安装会重新生成。</p>
-
-   <p>&emsp;&emsp;常用管理指令：</p>
-
-   ```sh
-   sudo bash install.sh start
-   sudo bash install.sh stop
-   sudo bash install.sh restart
-   sudo bash install.sh update
-   sudo bash install.sh install-version 1.0.0
-   sudo bash install.sh status
-   sudo bash install.sh web-port
-   sudo bash install.sh reset-password
    sudo bash install.sh uninstall
    ```
 
@@ -121,8 +102,6 @@
 
 ### 👉 **支持的算法、协议及币种**
 
-<p>&emsp;&emsp;ToMinerSystem 根据币种自动选择程序内置协议，Web 端不需要手动选择协议适配器。</p>
-
 ```text
   算法 / 协议             支持的币种或模式
   SHA256D                 BTC、BCH
@@ -133,26 +112,6 @@
   PEARLHASH LINE JSON     PRL
   RAW TCP / SSL           Nginx
 ```
-
-<p>&emsp;&emsp;当前协议状态：</p>
-
-```text
-  BTC、BCH、LTC    支持常见 Stratum V1、Job/Share 路由和解析型服务费调度
-  ETC              支持 Ethereum Stratum mining.* 与 EthProxy 行式 JSON 路径
-  KAS、ALEO        使用各自独立的协议适配入口
-  PRL              支持 PearlHash 行式 JSON 的 TCP/TLS 转发和 Share 监控
-  Nginx            仅进行 Raw TCP/SSL 字节转发和备用地址故障转移
-```
-
-> [!NOTE]
-> 不同矿池可能使用不同协议变体。“可以配置”不等同于已经通过所有真实矿池验证。ETC、KAS、ALEO、PRL 的协议级服务费切换仍应使用真实矿机和目标矿池进行小规模验证；无法安全预热、认证或获得有效 Job 时，程序保持主池中转，不伪造切换成功。
-
-   </td>
-   </tr>
-   <tr>
-   <td>
-
-<span id="tms"></span>
 
 ### 👉 **TMS 本地加密客户端**
 
@@ -253,7 +212,7 @@ TMS/windows/win-TMS.exe
 
 <div align="center">
 
-ToMinerSystem v1.0.0 · Windows / Ubuntu / Debian / CentOS · 默认服务费 0%
+ToMinerSystem v1.0.0 · Windows / Ubuntu / Debian / CentOS · 开发阶段服务费 0%
 
 <br>
 
