@@ -107,7 +107,7 @@ bash <(curl -fsSL https://github.com/ToMinerSystem/ToMinerSystem/raw/main/TMS/TM
 
 <p>&emsp;&emsp;首次登录后请立即修改管理员密码。不要把管理 Web 端直接暴露给整个互联网，建议使用防火墙白名单、VPN、SSH 隧道或可信反向代理限制访问来源。</p>
 
-<p>&emsp;&emsp;TMS 配对码属于连接凭据，请勿在公开仓库、群聊或截图中泄露。</p>
+<p>&emsp;&emsp;TMS 配对码属于连接凭据，请勿在公开群聊或截图中泄露。</p>
 
 <div align="center">
 
